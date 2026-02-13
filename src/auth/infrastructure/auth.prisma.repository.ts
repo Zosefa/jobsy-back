@@ -21,6 +21,8 @@ export class AuthPrismaRepository implements AuthRepository {
         role: true,
         passwordHash: true,
         isActive: true,
+        codeResetMdp: true,
+        codeResetMdpExpiration: true,
       },
     });
   }
@@ -32,10 +34,61 @@ export class AuthPrismaRepository implements AuthRepository {
     });
   }
 
+  async findUserNamesById(id: string) {
+    const user = await this.prisma.utilisateur.findUnique({
+      where: { id },
+      select: {
+        profilCandidat: { select: { nom: true, prenom: true } },
+        profilRecruteur: { select: { nom: true, prenom: true } },
+        profilAdmin: { select: { nom: true, prenom: true } },
+      },
+    });
+
+    if (!user) return null;
+
+    return (
+      user.profilCandidat ??
+      user.profilRecruteur ??
+      user.profilAdmin ??
+      null
+    );
+  }
+
   findEntrepriseById(id: string) {
     return this.prisma.entreprise.findUnique({
       where: { id },
       select: { id: true },
+    });
+  }
+
+  async updateResetCode(userId: string, codeHash: string, expiresAt: Date) {
+    await this.prisma.utilisateur.update({
+      where: { id: userId },
+      data: {
+        codeResetMdp: codeHash,
+        codeResetMdpExpiration: expiresAt,
+      },
+    });
+  }
+
+  async clearResetCode(userId: string) {
+    await this.prisma.utilisateur.update({
+      where: { id: userId },
+      data: {
+        codeResetMdp: null,
+        codeResetMdpExpiration: null,
+      },
+    });
+  }
+
+  async updatePassword(userId: string, passwordHash: string) {
+    await this.prisma.utilisateur.update({
+      where: { id: userId },
+      data: {
+        passwordHash,
+        codeResetMdp: null,
+        codeResetMdpExpiration: null,
+      },
     });
   }
 

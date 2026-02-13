@@ -8,6 +8,7 @@ import { FilesModule } from '../files/files.module';
 import { AuthDomainService } from './domain/auth.domain.service';
 import { AUTH_REPOSITORY } from './domain/auth.repository';
 import { AuthPrismaRepository } from './infrastructure/auth.prisma.repository';
+import { BrevoEmailService } from './infrastructure/brevo-email.service';
 
 @Module({
   imports: [ConfigModule, JwtModule.register({}), FilesModule],
@@ -16,6 +17,7 @@ import { AuthPrismaRepository } from './infrastructure/auth.prisma.repository';
     AuthAppService,
     AuthDomainService,
     { provide: AUTH_REPOSITORY, useClass: AuthPrismaRepository },
+    BrevoEmailService,
     JwtAccessStrategy,
   ],
 })

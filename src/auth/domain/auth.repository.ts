@@ -3,7 +3,13 @@ import type { PhoneInput } from './auth.domain.service';
 
 export type AuthUser = Pick<
   Utilisateur,
-  'id' | 'email' | 'role' | 'passwordHash' | 'isActive'
+  | 'id'
+  | 'email'
+  | 'role'
+  | 'passwordHash'
+  | 'isActive'
+  | 'codeResetMdp'
+  | 'codeResetMdpExpiration'
 >;
 
 export type PublicUser = Pick<Utilisateur, 'id' | 'email' | 'role'>;
@@ -46,7 +52,17 @@ export type CreateSessionInput = {
 export interface AuthRepository {
   findUserByEmail(email: string): Promise<AuthUser | null>;
   findUserById(id: string): Promise<Pick<AuthUser, 'id' | 'role' | 'isActive'> | null>;
+  findUserNamesById(
+    id: string,
+  ): Promise<{ nom?: string | null; prenom?: string | null } | null>;
   findEntrepriseById(id: string): Promise<Pick<Entreprise, 'id'> | null>;
+  updateResetCode(
+    userId: string,
+    codeHash: string,
+    expiresAt: Date,
+  ): Promise<void>;
+  clearResetCode(userId: string): Promise<void>;
+  updatePassword(userId: string, passwordHash: string): Promise<void>;
   createCandidatUser(input: CreateCandidatUserInput): Promise<PublicUser>;
   createRecruteurUser(input: CreateRecruteurUserInput): Promise<PublicUser>;
   createSession(input: CreateSessionInput): Promise<Pick<AuthSession, 'id'>>;
