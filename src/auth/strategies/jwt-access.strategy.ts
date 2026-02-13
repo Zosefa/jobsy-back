@@ -1,9 +1,10 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy, ExtractJwt } from 'passport-jwt';
 import { Request } from 'express';
 import { ConfigService } from '@nestjs/config';
-import { PrismaService } from '../../prisma/prisma.service';
+import { AUTH_REPOSITORY } from '../domain/auth.repository';
+import type { AuthRepository } from '../domain/auth.repository';
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-return
 const cookieExtractor = (req: Request) => req?.cookies?.access_token ?? null;
@@ -15,7 +16,7 @@ export class JwtAccessStrategy extends PassportStrategy(
 ) {
   constructor(
     config: ConfigService,
-    private readonly prisma: PrismaService,
+    @Inject(AUTH_REPOSITORY) private readonly repo: AuthRepository,
   ) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     super({
@@ -28,11 +29,7 @@ export class JwtAccessStrategy extends PassportStrategy(
 
   async validate(payload: any) {
     // payload contient: sub, role, sid, jti, exp...
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    const revoked = await this.prisma.revokedAccessToken.findUnique({
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-      where: { jti: payload.jti },
-    });
+    const revoked = await this.repo.findRevokedAccessToken(payload.jti);
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (revoked && revoked.expiresAt > new Date()) {

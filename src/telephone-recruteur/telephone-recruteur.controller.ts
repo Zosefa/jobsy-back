@@ -10,7 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { TelephoneRecruteurService } from './telephone-recruteur.service';
+import { TelephoneRecruteurAppService } from './application/telephone-recruteur.app.service';
 import {
   CreateTelephoneRecruteurDto,
   UpdateTelephoneRecruteurDto,
@@ -22,7 +22,7 @@ import { ApiBearerAuth, ApiBody, ApiParam, ApiTags } from '@nestjs/swagger';
 @ApiTags('Telephone Recruteur')
 @ApiBearerAuth()
 export class TelephoneRecruteurController {
-  constructor(private readonly service: TelephoneRecruteurService) {}
+  constructor(private readonly service: TelephoneRecruteurAppService) {}
 
   @Get('')
   list(@Req() req: any) {

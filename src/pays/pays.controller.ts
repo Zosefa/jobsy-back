@@ -1,10 +1,10 @@
 import { Controller, Get, Param } from '@nestjs/common';
 import { ApiParam, ApiTags } from '@nestjs/swagger';
-import { PaysService } from './pays.service';
+import { PaysAppService } from './application/pays.app.service';
 @Controller('pays')
 @ApiTags('Pays')
 export class PaysController {
-  constructor(private readonly service: PaysService) {}
+  constructor(private readonly service: PaysAppService) {}
 
   @Get('')
   list() {
