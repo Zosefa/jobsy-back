@@ -11,7 +11,7 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { FilesService } from '../files/files.service';
-import { ProfilRecruteurService } from './profil-recruteur.service';
+import { ProfilRecruteurAppService } from './application/profil-recruteur.app.service';
 import { UpdateProfilRecruteurDto } from './dto/update-profil-recruteur.dto';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 
@@ -20,7 +20,7 @@ import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 @ApiTags('Profil Recruteur')
 @ApiBearerAuth()
 export class ProfilRecruteurController {
-  constructor(private readonly service: ProfilRecruteurService) {}
+  constructor(private readonly service: ProfilRecruteurAppService) {}
 
   @Get('/info')
   getInfo(@Req() req: any) {
@@ -47,7 +47,7 @@ export class ProfilRecruteurController {
     },
   })
   @UseInterceptors(
-    FileInterceptor('photo', FilesService.multerOptions('candidat', 'photo')),
+    FileInterceptor('photo', FilesService.multerOptions('recruteur', 'photo')),
   )
   updatePhoto(@Req() req: any, @UploadedFile() file: Express.Multer.File) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access

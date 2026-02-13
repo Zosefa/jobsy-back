@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ProfilCandidatService } from './profil-candidat.service';
+import { ProfilCandidatAppService } from './application/profil-candidat.app.service';
 import { UpdateProfilCandidatDto } from './dto/update-profil-candidat.dto';
 import { FilesService } from '../files/files.service';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
@@ -20,7 +20,7 @@ import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 @ApiTags('Profil Candidat')
 @ApiBearerAuth()
 export class ProfilCandidatController {
-  constructor(private readonly service: ProfilCandidatService) {}
+  constructor(private readonly service: ProfilCandidatAppService) {}
 
   @Get('/info')
   getInfo(@Req() req: any) {

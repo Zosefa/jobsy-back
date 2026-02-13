@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import express from 'express';
 import { AuthGuard } from '@nestjs/passport';
-import { AuthService } from './auth.service';
+import { AuthAppService } from './application/auth.app.service';
 import { RegisterCandidatDto } from './dto/register-candidat.dto';
 import { RegisterRecruteurDto } from './dto/register-recruteur.dto';
 import { LoginDto } from './dto/login.dto';
@@ -23,7 +23,7 @@ import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 @ApiTags('Auth')
 export class AuthController {
   constructor(
-    private readonly auth: AuthService,
+    private readonly auth: AuthAppService,
     private readonly files: FilesService,
   ) {}
 
@@ -33,12 +33,15 @@ export class AuthController {
   @UseInterceptors(
     FileInterceptor('photo', FilesService.multerOptions('candidat', 'photo')),
   )
-  registerCandidat(
+  async registerCandidat(
     @Body() dto: RegisterCandidatDto,
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    const photoPath = file ? this.files.buildResponse(file).path : undefined;
-    return this.auth.registerCandidat({ ...dto, photo: photoPath });
+    const name = `${dto.nom}-${dto.prenom}`;
+    const photo = file
+      ? await this.files.moveToEntityFolder(file, 'candidat', 'photo', name)
+      : undefined;
+    return this.auth.registerCandidat({ ...dto, photo: photo?.path });
   }
 
   @Post('register/recruteur')
@@ -47,12 +50,15 @@ export class AuthController {
   @UseInterceptors(
     FileInterceptor('photo', FilesService.multerOptions('recruteur', 'photo')),
   )
-  registerRecruteur(
+  async registerRecruteur(
     @Body() dto: RegisterRecruteurDto,
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    const photoPath = file ? this.files.buildResponse(file).path : undefined;
-    return this.auth.registerRecruteur({ ...dto, photo: photoPath });
+    const name = `${dto.nom}-${dto.prenom}`;
+    const photo = file
+      ? await this.files.moveToEntityFolder(file, 'recruteur', 'photo', name)
+      : undefined;
+    return this.auth.registerRecruteur({ ...dto, photo: photo?.path });
   }
 
   @Post('login')

@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Param,
   Post,
   Put,
   Req,
@@ -12,7 +13,7 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { FilesService } from '../files/files.service';
-import { EntrepriseService } from './entreprise.service';
+import { EntrepriseAppService } from './application/entreprise.app.service';
 import { EntrepriseDto } from './dto/entreprise.dto';
 import {
   ApiBearerAuth,
@@ -21,12 +22,15 @@ import {
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
+import { Roles } from '../auth/roles.decorator';
+import { RolesGuard } from '../auth/roles.guard';
+import { Role } from '@prisma/client';
 
-@Controller('entreprse')
+@Controller('entreprise')
 @ApiTags('Entreprise')
 export class EntrepriseController {
   constructor(
-    private readonly service: EntrepriseService,
+    private readonly service: EntrepriseAppService,
     private readonly files: FilesService,
   ) {}
 
@@ -60,28 +64,33 @@ export class EntrepriseController {
   @UseInterceptors(
     FileInterceptor('logo', FilesService.multerOptions('entreprise', 'logo')),
   )
-  create(
+  async create(
     @Body() dto: EntrepriseDto,
     @UploadedFile() file?: Express.Multer.File,
   ) {
-    const logoPath = file ? this.files.buildResponse(file).path : undefined;
-    return this.service.createEntreprise({ ...dto, logo: logoPath });
+    const logo = file
+      ? await this.files.moveToEntityFolder(file, 'entreprise', 'logo', dto.nom)
+      : undefined;
+    return this.service.createEntreprise({ ...dto, logo: logo?.path });
   }
 
   @Put(':id')
-  @UseGuards(AuthGuard('jwt-access'))
+  @UseGuards(AuthGuard('jwt-access'), RolesGuard)
+  @Roles(Role.RECRUTEUR)
   @ApiBearerAuth()
   @ApiParam({ name: 'id', required: true })
   @ApiBody({ type: EntrepriseDto })
   update(@Req() req: any, @Body() dto: EntrepriseDto) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
-    return this.service.updateEntreprise(req.params.id, dto);
+    return this.service.updateEntreprise(req.user, req.params.id, dto);
   }
 
-  @Put('update/logo')
-  @UseGuards(AuthGuard('jwt-access'))
+  @Put(':id/logo')
+  @UseGuards(AuthGuard('jwt-access'), RolesGuard)
+  @Roles(Role.RECRUTEUR)
   @ApiBearerAuth()
   @ApiConsumes('multipart/form-data')
+  @ApiParam({ name: 'id', required: true })
   @ApiBody({
     schema: {
       type: 'object',
@@ -94,8 +103,12 @@ export class EntrepriseController {
   @UseInterceptors(
     FileInterceptor('logo', FilesService.multerOptions('entreprise', 'logo')),
   )
-  updateLogo(@Req() req: any, @UploadedFile() file: Express.Multer.File) {
+  updateLogo(
+    @Req() req: any,
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
-    return this.service.updateLogo(req.params.id, file);
+    return this.service.updateLogo(req.user, id, file);
   }
 }
