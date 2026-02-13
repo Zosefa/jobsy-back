@@ -1,0 +1,191 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  CANDIDAT
+  RECRUTEUR
+  ADMIN
+}
+
+model Pays {
+  id       String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nom      String  @db.VarChar(150)
+  codeIso2 String  @unique @map("code_iso2") @db.VarChar(2)
+  codeIso3 String? @unique @map("code_iso3") @db.VarChar(3)
+
+  candidats   ProfilCandidat[]
+  entreprises Entreprise[]
+
+  @@map("pays")
+}
+
+model Utilisateur {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email     String   @unique @db.Text
+
+  // on garde le nom SQL "password" via @map, mais on stocke un HASH
+  passwordHash String @map("password") @db.Text
+
+  role      Role     
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  profilCandidat  ProfilCandidat?
+  profilRecruteur ProfilRecruteur?
+  profilAdmin     ProfilAdmin?
+
+  // Auth tables
+  sessions       AuthSession[]
+  revokedTokens  RevokedAccessToken[]
+
+  @@map("utilisateurs")
+}
+
+model ProfilCandidat {
+  utilisateurId String @id @map("utilisateur_id") @db.Uuid
+  utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id])
+
+  nom              String  @db.VarChar(250)
+  prenom           String  @db.VarChar(250)
+  photo            String?  @db.Text
+  resume           String?  @db.Text
+  anneesExperience Int      @default(0) @map("annees_experience")
+  profilCompleted  Boolean  @default(false) @map("profil_completed")
+
+  paysId  String  @map("pays_id") @db.Uuid
+  pays    Pays    @relation(fields: [paysId], references: [id])
+
+  ville   String? @db.VarChar(150)
+  adresse String? @db.Text
+
+  telephones TelephoneCandidat[]
+
+  @@map("profils_candidat")
+}
+
+model TelephoneCandidat {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  candidatId       String   @map("candidat_id") @db.Uuid
+  candidat         ProfilCandidat @relation(fields: [candidatId], references: [utilisateurId])
+
+  telephone        String   @db.Text
+  isPhonePrincipal Boolean  @default(false) @map("is_phone_principal")
+
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([candidatId])
+  @@map("telephones_candidat")
+}
+
+model Entreprise {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nom         String   @db.Text
+  logo        String?  @db.Text
+
+  paysId      String  @map("pays_id") @db.Uuid
+  pays        Pays    @relation(fields: [paysId], references: [id])
+
+  ville       String?  @db.VarChar(150)
+  siegeSocial String?  @map("siege_social") @db.Text
+
+  verifie     Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  recruteurs ProfilRecruteur[]
+
+  @@map("entreprises")
+}
+
+model ProfilRecruteur {
+  utilisateurId String @id @map("utilisateur_id") @db.Uuid
+  utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id])
+
+  entrepriseId String @map("entreprise_id") @db.Uuid
+  entreprise   Entreprise @relation(fields: [entrepriseId], references: [id])
+
+  nom              String  @db.VarChar(250)
+  prenom           String  @db.VarChar(250)
+
+  photo    String? @db.Text
+  fonction String? @db.Text
+  verifie  Boolean @default(false)
+
+  telephones TelephoneRecruteur[]
+
+  @@index([entrepriseId])
+  @@map("profils_recruteur")
+}
+
+model TelephoneRecruteur {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  recruteurId      String   @map("recruteur_id") @db.Uuid
+  recruteur        ProfilRecruteur @relation(fields: [recruteurId], references: [utilisateurId])
+
+  telephone        String   @db.Text
+  isPhonePrincipal Boolean  @default(false) @map("is_phone_principal")
+
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([recruteurId])
+  @@map("telephones_recruteur")
+}
+
+model ProfilAdmin {
+  utilisateurId String @id @map("utilisateur_id") @db.Uuid
+  utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id])
+
+  superAdmin Boolean @default(false) @map("super_admin")
+  nom        String? @db.VarChar(250)
+  prenom     String? @db.VarChar(250)
+  photo      String? @db.Text
+
+  @@map("profils_admin")
+}
+
+model AuthSession {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  user             Utilisateur @relation(fields: [userId], references: [id])
+
+  refreshTokenHash String   @map("refresh_token_hash") @db.Text
+  expiresAt        DateTime @map("expires_at") @db.Timestamptz(6)
+  revokedAt        DateTime? @map("revoked_at") @db.Timestamptz(6)
+
+  userAgent        String?  @map("user_agent") @db.Text
+  ip               String?  @db.Text
+
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("auth_sessions")
+}
+
+model RevokedAccessToken {
+  jti       String   @id @db.Text
+  userId    String   @map("user_id") @db.Uuid
+  user      Utilisateur @relation(fields: [userId], references: [id])
+
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  revokedAt DateTime @default(now()) @map("revoked_at") @db.Timestamptz(6)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("revoked_access_tokens")
+}
