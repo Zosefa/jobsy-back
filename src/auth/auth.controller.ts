@@ -18,6 +18,10 @@ import { LoginDto } from './dto/login.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { FilesService } from '../files/files.service';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import {
+  ResetPasswordConfirmDto,
+  ResetPasswordRequestDto,
+} from './dto/reset-password.dto';
 
 @Controller('auth')
 @ApiTags('Auth')
@@ -90,6 +94,22 @@ export class AuthController {
 
     this.setCookies(res, out.accessToken, out.refreshToken);
     return { userId: out.userId, role: out.role };
+  }
+
+  @Post('password/reset-request')
+  @ApiBody({ type: ResetPasswordRequestDto })
+  requestPasswordReset(@Body() dto: ResetPasswordRequestDto) {
+    return this.auth.requestPasswordReset(dto.email);
+  }
+
+  @Post('password/reset')
+  @ApiBody({ type: ResetPasswordConfirmDto })
+  resetPassword(@Body() dto: ResetPasswordConfirmDto) {
+    return this.auth.resetPassword({
+      email: dto.email,
+      code: dto.code,
+      newPassword: dto.newPassword,
+    });
   }
 
   @UseGuards(AuthGuard('jwt-access'))

@@ -37,6 +37,9 @@ model Utilisateur {
   // on garde le nom SQL "password" via @map, mais on stocke un HASH
   passwordHash String @map("password") @db.Text
 
+  codeResetMdp           String?   @map("code_reset_mdp") @db.Text
+  codeResetMdpExpiration DateTime? @map("code_reset_mdp_expiration") @db.Timestamptz(6)
+
   role      Role     
   isActive  Boolean  @default(true) @map("is_active")
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)

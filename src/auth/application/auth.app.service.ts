@@ -20,6 +20,7 @@ import {
   AuthDomainService,
   PhoneInput,
 } from '../domain/auth.domain.service';
+import { BrevoEmailService } from '../infrastructure/brevo-email.service';
 
 @Injectable()
 export class AuthAppService {
@@ -28,6 +29,7 @@ export class AuthAppService {
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
     private readonly domain: AuthDomainService,
+    private readonly brevo: BrevoEmailService,
   ) {}
 
   private accessTtlSeconds() {
@@ -133,6 +135,63 @@ export class AuthAppService {
     };
 
     return this.repo.createRecruteurUser(payload);
+  }
+
+  // -------------------------
+  // RESET PASSWORD
+  // -------------------------
+  async requestPasswordReset(email: string) {
+    const user = await this.repo.findUserByEmail(email);
+    if (!user) {
+      // réponse neutre pour éviter l'énumération d'emails
+      return { ok: true };
+    }
+
+    const code = this.generateResetCode();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    const codeHash = await argon2.hash(code);
+
+    await this.repo.updateResetCode(user.id, codeHash, expiresAt);
+
+    const names = await this.repo.findUserNamesById(user.id);
+
+    await this.brevo.sendResetCodeEmail({
+      email: user.email,
+      code,
+      nom: names?.nom ?? undefined,
+      prenom: names?.prenom ?? undefined,
+    });
+
+    return { ok: true };
+  }
+
+  async resetPassword(input: {
+    email: string;
+    code: string;
+    newPassword: string;
+  }) {
+    const user = await this.repo.findUserByEmail(input.email);
+    if (!user || !user.isActive) {
+      throw new UnauthorizedException('Code invalide ou expiré');
+    }
+
+    if (!user.codeResetMdp || !user.codeResetMdpExpiration) {
+      throw new UnauthorizedException('Code invalide ou expiré');
+    }
+
+    if (user.codeResetMdpExpiration <= new Date()) {
+      throw new UnauthorizedException('Code expiré');
+    }
+
+    const ok = await argon2.verify(user.codeResetMdp, input.code);
+    if (!ok) {
+      throw new UnauthorizedException('Code invalide');
+    }
+
+    const newHash = await argon2.hash(input.newPassword);
+    await this.repo.updatePassword(user.id, newHash);
+
+    return { ok: true };
   }
 
   async login(
@@ -258,5 +317,9 @@ export class AuthAppService {
     );
 
     return { accessToken, refreshToken };
+  }
+
+  private generateResetCode() {
+    return Math.floor(10000 + Math.random() * 90000).toString();
   }
 }
