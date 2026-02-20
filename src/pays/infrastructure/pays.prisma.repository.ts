@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { PaysRepository } from '../domain/pays.repository';
+import { CreatePaysInput, PaysRepository } from '../domain/pays.repository';
 
 @Injectable()
 export class PaysPrismaRepository implements PaysRepository {
@@ -12,5 +12,13 @@ export class PaysPrismaRepository implements PaysRepository {
 
   findById(id: string) {
     return this.prisma.pays.findUnique({ where: { id } });
+  }
+
+  findByNom(nom: string) {
+    return this.prisma.pays.findFirst({ where: { nom } });
+  }
+
+  create(data: CreatePaysInput) {
+    return this.prisma.pays.create({ data });
   }
 }
