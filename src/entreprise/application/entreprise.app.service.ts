@@ -60,11 +60,7 @@ export class EntrepriseAppService {
     return this.repo.update(id, { ...input, verifie });
   }
 
-  async updateLogo(
-    user: AccessUser,
-    id: string,
-    file: Express.Multer.File,
-  ) {
+  async updateLogo(user: AccessUser, id: string, file: Express.Multer.File) {
     await this.ensureRecruteurEntreprise(user, id);
     const existing = await this.repo.findById(id);
     if (!existing) {
@@ -105,7 +101,10 @@ export class EntrepriseAppService {
     return entreprise;
   }
 
-  private async ensureRecruteurEntreprise(user: AccessUser, entrepriseId: string) {
+  private async ensureRecruteurEntreprise(
+    user: AccessUser,
+    entrepriseId: string,
+  ) {
     if (!user || user.role !== Role.RECRUTEUR) {
       throw new UnauthorizedException(
         "Seul un membre du personnel de l'entreprise peut modifier le logo",

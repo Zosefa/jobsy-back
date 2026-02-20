@@ -1,7 +1,10 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { PaysDomainService } from '../domain/pays.domain.service';
 import { PAYS_REPOSITORY } from '../domain/pays.repository';
-import type { PaysRepository } from '../domain/pays.repository';
+import type {
+  CreatePaysInput,
+  PaysRepository,
+} from '../domain/pays.repository';
 
 @Injectable()
 export class PaysAppService {
@@ -16,5 +19,16 @@ export class PaysAppService {
 
   findById(id: string) {
     return this.repo.findById(id);
+  }
+
+  async createPays(input: CreatePaysInput) {
+    console.log('input', input);
+    const existing = await this.repo.findByNom(input.nom);
+    console.log('existing', existing);
+    if (existing) {
+      throw new NotFoundException('Ce Pays existe déjà');
+    }
+
+    return this.repo.create(input);
   }
 }
